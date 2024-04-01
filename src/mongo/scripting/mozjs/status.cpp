@@ -54,6 +54,7 @@ Status MongoStatusInfo::toStatus(JSContext* cx, JS::HandleValue value) {
 }
 
 void MongoStatusInfo::fromStatus(JSContext* cx, Status status, JS::MutableHandleValue value) {
+    invariant(status != Status::OK());
     auto scope = getScope(cx);
 
     JS::RootedValue undef(cx);
@@ -89,16 +90,6 @@ void MongoStatusInfo::fromStatus(JSContext* cx, Status status, JS::MutableHandle
     JS_SetPrivate(thisv, scope->trackedNew<Status>(std::move(status)));
 
     value.setObjectOrNull(thisv);
-}
-
-void MongoStatusInfo::construct(JSContext* cx, JS::CallArgs args) {
-    auto code = args.get(0).toInt32();
-    auto reason = JSStringWrapper(cx, args.get(1).toString()).toString();
-
-    JS::RootedValue out(cx);
-    fromStatus(cx, Status(ErrorCodes::Error(code), std::move(reason)), &out);
-
-    args.rval().set(out);
 }
 
 void MongoStatusInfo::finalize(js::FreeOp* fop, JSObject* obj) {
@@ -155,7 +146,7 @@ void MongoStatusInfo::Functions::stack::call(JSContext* cx, JS::CallArgs args) {
 void MongoStatusInfo::postInstall(JSContext* cx, JS::HandleObject global, JS::HandleObject proto) {
     auto scope = getScope(cx);
 
-    JS_SetPrivate(proto, scope->trackedNew<Status>(Status::OK()));
+    JS_SetPrivate(proto, scope->trackedNew<Status>(Status(ErrorCodes::UnknownError, "Mongo Status Prototype")));
 }
 
 }  // namespace mozjs
